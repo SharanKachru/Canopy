@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: canopy
+      POSTGRES_USER: canopy
+      POSTGRES_PASSWORD: canopy
+    ports:
+      - "5432:5432"
+    volumes:
+      - canopy_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U canopy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - ./zones.geojson:/app/zones.geojson:ro
+
+  worker:
+    build: .
+    command: python worker.py
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - ./zones.geojson:/app/zones.geojson:ro
+
+volumes:
+  canopy_pgdata:
