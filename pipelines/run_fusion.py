@@ -55,7 +55,7 @@ if __name__ == "__main__":
             start=args.start,
             end=args.end,
             gee_project=gee_project,
-            database_url=settings.database_url,
+            settings=settings,
             dry_run=args.dry_run,
         )
     )

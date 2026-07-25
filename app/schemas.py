@@ -77,3 +77,25 @@ class SendAlertResult(BaseModel):
     sent: int
     failed: int
     skipped_no_crossing: bool = False
+
+
+class FarmerRegisterRequest(BaseModel):
+    name: str
+    email: str
+    district: str = Field(..., description="District name, e.g. 'Pune' or 'Serchhip'")
+    state: str | None = Field(None, description="State/admin1 name, used to disambiguate if district name is ambiguous")
+    preferred_language: str | None = Field("en", description="en, hi, or sw")
+
+
+class FarmerOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    email: str | None
+    zone_id: uuid.UUID
+    district: str | None
+    state: str | None
+    preferred_language: str
+    email_opt_in: bool
+    active: bool
+
+    model_config = {"from_attributes": True}

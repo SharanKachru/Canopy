@@ -7,19 +7,20 @@ class Settings(BaseSettings):
     # ── Database ──────────────────────────────────────────────────────────────
     database_url: str = "postgresql+asyncpg://canopy:canopy@localhost:5432/canopy"
 
-    # ── Google Earth Engine ───────────────────────────────────────────────────
-    gee_project: str = ""           # GCP project ID with Earth Engine enabled
+    # ── Supabase REST API ─────────────────────────────────────────────────────
+    supabase_url: str = ""
+    supabase_service_role_key: str = ""
 
-    # ── WhatsApp Cloud API ────────────────────────────────────────────────────
-    whatsapp_api_version: str = "v23.0"
-    whatsapp_phone_number_id: str = ""
-    whatsapp_access_token: str = ""
-    whatsapp_template_name: str = "canopy_risk_alert"
-    whatsapp_template_language: str = "en"
+    # ── Google Earth Engine ───────────────────────────────────────────────────
+    gee_project: str = ""
+
+    # ── Resend Email API ──────────────────────────────────────────────────────
+    resend_api_key: str = ""
+    resend_from_email: str = "alerts@canopy.example.com"
 
     # ── Alert thresholds ──────────────────────────────────────────────────────
-    alert_threshold: int = 70       # risk score (0-100) that triggers an alert
-    alert_cooldown_hours: int = 168  # 7 days between repeat alerts for same zone
+    alert_threshold: int = 70
+    alert_cooldown_hours: int = 168
 
     # ── Scheduler ─────────────────────────────────────────────────────────────
     schedule_day_of_week: str = "mon"

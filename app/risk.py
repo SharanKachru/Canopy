@@ -109,6 +109,15 @@ def fuse_risk(
     else:
         level = RiskLevel.normal
 
+    # Guardrail: don't let a district be flagged severe/warning without NDVI
+    # (the highest-weight, most direct vegetation-stress signal) or without
+    # reasonable overall confidence. This prevents rainfall+soil alone
+    # (which can both independently clamp to max) from producing a false
+    # max-risk score when NDVI coverage is missing for that district/week.
+    if "ndvi" not in available or confidence < 0.6:
+        if level in (RiskLevel.severe, RiskLevel.warning):
+            level = RiskLevel.watch
+
     return RiskResult(
         score=round(score, 1),
         level=level,

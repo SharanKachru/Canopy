@@ -14,12 +14,16 @@ import asyncio
 import json
 import logging
 import os
-from datetime import UTC, date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
+from sqlalchemy import select
 
 from app.config import get_settings
+from app.database import SessionLocal
+from app.models import RiskScore
+from app.services.alerts import trigger_alerts
 from pipelines.ingest import run_ingestion
 
 logging.basicConfig(
@@ -29,6 +33,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 ZONES_PATH = os.environ.get("CANOPY_ZONES_PATH", "zones.geojson")
+ALERT_THRESHOLD = int(os.environ.get("ALERT_THRESHOLD", "70"))
 
 
 def _window() -> tuple[str, str]:
@@ -39,9 +44,43 @@ def _window() -> tuple[str, str]:
     return start.isoformat(), end.isoformat()
 
 
+async def _send_alerts_for_run(run_started_at: datetime) -> dict:
+    """
+    Find every risk score inserted during this ingestion run and fire
+    threshold-crossing alerts for each zone. Safe to call even if no
+    farmers are registered yet — trigger_alerts just sends 0 emails.
+    """
+    settings = get_settings()
+    sent = failed = checked = 0
+
+    async with SessionLocal() as db:
+        new_scores = list(
+            (
+                await db.scalars(
+                    select(RiskScore).where(RiskScore.created_at >= run_started_at)
+                )
+            ).all()
+        )
+        log.info("Checking %d new risk scores for alert-worthy zones", len(new_scores))
+
+        for rs in new_scores:
+            checked += 1
+            try:
+                result = await trigger_alerts(
+                    db, settings, rs.id, ALERT_THRESHOLD, dry_run=False
+                )
+                sent += result.sent
+                failed += result.failed
+            except Exception as exc:
+                log.error("Alert trigger failed for risk_score %s: %s", rs.id, exc)
+
+    return {"checked": checked, "sent": sent, "failed": failed}
+
+
 def ingestion_job() -> None:
     settings = get_settings()
     start, end = _window()
+    run_started_at = datetime.now(UTC)
     log.info("Running scheduled ingestion window=%s→%s", start, end)
 
     try:
@@ -59,10 +98,15 @@ def ingestion_job() -> None:
             start=start,
             end=end,
             gee_project=settings.gee_project,
-            database_url=settings.database_url,
+            settings=settings,
         )
     )
     log.info("Ingestion job done: %s", summary)
+
+    # Now check the freshly-ingested scores and email any farmers in
+    # zones that crossed the alert threshold.
+    alert_summary = asyncio.run(_send_alerts_for_run(run_started_at))
+    log.info("Alert pass done: %s", alert_summary)
 
 
 if __name__ == "__main__":

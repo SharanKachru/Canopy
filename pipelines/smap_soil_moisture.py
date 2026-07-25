@@ -1,31 +1,28 @@
-"""NASA SMAP L4 soil moisture ingestion via Google Earth Engine.
+"""NASA SMAP L4 soil moisture ingestion — uses GEE batch export."""
 
-SMAP L4 (SPL4SMGP) provides 3-hourly surface and rootzone soil moisture at 9 km,
-with ~2-day latency. We use the surface soil moisture band and compute a historical
-percentile so the output is scale-independent across soil types.
-
-Outputs soil_moisture (raw m³/m³) and soil_moisture_percentile (0–100).
-Percentile 0 = driest on record for that zone/season; 100 = wettest.
-"""
-
+import argparse
 import json
+import logging
 from dataclasses import dataclass
 from datetime import date
 
 import ee
 
+from pipelines.gee_export import build_ee_feature, export_table_to_gcs, float_or_none
+
+log = logging.getLogger(__name__)
+
+_SMAP_COLLECTION = "NASA/SMAP/SPL4SMGP/008"
+_SM_BAND = "sm_surface"
+
 
 @dataclass(frozen=True)
 class SoilMoistureObservation:
     grid_code: str
-    soil_moisture: float | None             # m³/m³ surface layer
-    soil_moisture_percentile: float | None  # 0–100, vs. historical same-season window
+    soil_moisture: float | None
+    soil_moisture_percentile: float | None
     window_start: date
     window_end: date
-
-
-_SMAP_COLLECTION = "NASA/SMAP/SPL4SMGP/007"
-_SM_BAND = "sm_surface"
 
 
 def _smap_collection(start: str, end: str, region: ee.Geometry) -> ee.ImageCollection:
@@ -41,28 +38,24 @@ def aggregate_zones(
     zones_geojson: dict,
     start: str,
     end: str,
-    baseline_start_year: int = 2015,
+    baseline_start_year: int = 2016,
     baseline_end_year: int = 2023,
     scale_m: int = 11000,
 ) -> list[SoilMoistureObservation]:
-    """Compute mean soil moisture per zone and its historical percentile rank."""
-    features = [
-        ee.Feature(
-            ee.Geometry(f["geometry"]),
-            {"grid_code": f["properties"]["grid_code"]},
-        )
-        for f in zones_geojson["features"]
-    ]
-    zones = ee.FeatureCollection(features)
+    features = zones_geojson["features"]
+    ee_features = [build_ee_feature(f) for f in features]
+    zones = ee.FeatureCollection(ee_features)
     start_date, end_date = date.fromisoformat(start), date.fromisoformat(end)
 
-    current_mean = (
-        _smap_collection(start, end, zones.geometry())
-        .mean()
-        .rename("soil_moisture")
-    )
+    current_col = _smap_collection(start, end, zones.geometry())
+    current_mean = ee.Image(
+        ee.Algorithms.If(
+            current_col.size().gt(0),
+            current_col.mean(),
+            ee.Image.constant(0).rename(_SM_BAND).selfMask(),
+        )
+    ).rename("soil_moisture")
 
-    # Build historical images for the same calendar window
     historical_images = []
     for year in range(baseline_start_year, baseline_end_year + 1):
         try:
@@ -73,60 +66,48 @@ def aggregate_zones(
             ye = end_date.replace(year=year)
         except ValueError:
             ye = end_date.replace(year=year, day=28)
-        historical_images.append(
-            _smap_collection(ys.isoformat(), ye.isoformat(), zones.geometry()).mean()
-        )
+        col = _smap_collection(ys.isoformat(), ye.isoformat(), zones.geometry())
+        historical_images.append(ee.Algorithms.If(col.size().gt(0), col.mean(), None))
 
-    historical_stack = ee.ImageCollection(historical_images)
-    n_years = baseline_end_year - baseline_start_year + 1
-
-    # Percentile rank: count how many historical years are <= current, normalised to 0..100
-    def count_below(hist_image: ee.Image) -> ee.Image:
-        return hist_image.lte(current_mean).rename("below")
-
-    rank_sum = historical_stack.map(count_below).sum()
+    valid_historical = ee.ImageCollection(ee.List(historical_images).removeAll([None]))
+    n_years = valid_historical.size()
+    rank_sum = valid_historical.map(
+        lambda img: ee.Image(img).lte(current_mean).rename("below")
+    ).sum()
     percentile = rank_sum.divide(n_years).multiply(100).rename("soil_moisture_percentile")
 
     output = current_mean.addBands(percentile)
-    stats = output.reduceRegions(
+    stats_fc = output.reduceRegions(
         collection=zones,
         reducer=ee.Reducer.mean(),
         scale=scale_m,
         tileScale=4,
-    ).getInfo()
+    )
+
+    rows = export_table_to_gcs(stats_fc, description=f"smap-{start}-{end}")
 
     return [
         SoilMoistureObservation(
-            grid_code=item["properties"]["grid_code"],
-            soil_moisture=item["properties"].get("soil_moisture"),
-            soil_moisture_percentile=item["properties"].get("soil_moisture_percentile"),
+            grid_code=row["grid_code"],
+            soil_moisture=float_or_none(row.get("soil_moisture")),
+            soil_moisture_percentile=float_or_none(row.get("soil_moisture_percentile")),
             window_start=start_date,
             window_end=end_date,
         )
-        for item in stats["features"]
+        for row in rows
+        if row.get("grid_code")
     ]
 
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="SMAP soil moisture aggregation")
+    parser = argparse.ArgumentParser()
     parser.add_argument("--zones", required=True)
     parser.add_argument("--start", required=True)
     parser.add_argument("--end", required=True)
     parser.add_argument("--project", required=True)
-    parser.add_argument("--baseline-start-year", type=int, default=2015)
-    parser.add_argument("--baseline-end-year", type=int, default=2023)
     args = parser.parse_args()
-
     ee.Initialize(project=args.project)
     with open(args.zones, encoding="utf-8") as fh:
         zones_geojson = json.load(fh)
-    for obs in aggregate_zones(
-        zones_geojson,
-        args.start,
-        args.end,
-        args.baseline_start_year,
-        args.baseline_end_year,
-    ):
+    for obs in aggregate_zones(zones_geojson, args.start, args.end):
         print(json.dumps(obs.__dict__, default=str))

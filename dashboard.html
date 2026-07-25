@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canopy — India Crop Risk Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --bg: #0a0f0d;
+    --surface: #111a14;
+    --border: #1e2e22;
+    --text: #e8f0ea;
+    --muted: #6b8a72;
+    --normal: #2d6a4f;
+    --normal-light: #52b788;
+    --watch: #e9c46a;
+    --warning: #f4a261;
+    --severe: #e63946;
+    --severe-glow: rgba(230, 57, 70, 0.3);
+    --accent: #52b788;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+    z-index: 1000;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 28px;
+    height: 28px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .logo-text {
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.05em;
+    color: var(--text);
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 3px;
+  }
+
+  .stat-value.severe { color: var(--severe); }
+  .stat-value.warning { color: var(--warning); }
+  .stat-value.watch { color: var(--watch); }
+  .stat-value.normal { color: var(--normal-light); }
+
+  .window-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--border);
+    padding: 4px 10px;
+    border-radius: 4px;
+  }
+
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  #map {
+    flex: 1;
+    background: #0d1a10;
+  }
+
+  .sidebar {
+    width: 320px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .sidebar-header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .sidebar-subtitle {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .legend {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .district-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+
+  .district-list::-webkit-scrollbar { width: 4px; }
+  .district-list::-webkit-scrollbar-track { background: transparent; }
+  .district-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .district-item {
+    padding: 10px 20px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .district-item:hover { background: rgba(82, 183, 136, 0.05); }
+  .district-item.active { background: rgba(82, 183, 136, 0.08); }
+
+  .district-rank {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    width: 20px;
+    flex-shrink: 0;
+  }
+
+  .district-info { flex: 1; min-width: 0; }
+
+  .district-name {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .district-meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .district-score {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .score-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .score-level {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 2px;
+  }
+
+  .level-severe { color: var(--severe); }
+  .level-warning { color: var(--warning); }
+  .level-watch { color: var(--watch); }
+  .level-normal { color: var(--normal-light); }
+
+  .detail-panel {
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding: 16px 20px;
+    display: none;
+  }
+
+  .detail-panel.visible { display: block; }
+
+  .detail-district {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+
+  .indicators {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  .indicator {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+  }
+
+  .indicator-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .indicator-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .bar-container {
+    margin-top: 6px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  .loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 999;
+  }
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .pulse {
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .no-data {
+    padding: 24px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🌿</div>
+    <div>
+      <div class="logo-text">CANOPY</div>
+      <div class="logo-sub">Crop Risk Monitor</div>
+    </div>
+  </div>
+  <div class="header-stats">
+    <div class="stat">
+      <div class="stat-value severe" id="stat-severe">—</div>
+      <div class="stat-label">Severe</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value warning" id="stat-warning">—</div>
+      <div class="stat-label">Warning</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value watch" id="stat-watch">—</div>
+      <div class="stat-label">Watch</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value normal" id="stat-normal">—</div>
+      <div class="stat-label">Normal</div>
+    </div>
+  </div>
+  <div class="window-badge" id="window-badge">Loading...</div>
+</header>
+
+<div class="main">
+  <div id="map">
+    <div class="loading" id="loading">
+      <div class="loading-spinner"></div>
+      <div class="loading-text pulse">Fetching satellite data...</div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Highest Risk Districts</div>
+      <div class="sidebar-subtitle" id="sidebar-subtitle">Loading...</div>
+    </div>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#e63946"></div>Severe
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#f4a261"></div>Warning
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#e9c46a"></div>Watch
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#52b788"></div>Normal
+      </div>
+    </div>
+    <div class="district-list" id="district-list">
+      <div class="no-data">Loading risk data...</div>
+    </div>
+    <div class="detail-panel" id="detail-panel">
+      <div class="detail-district" id="detail-name">—</div>
+      <div class="indicators">
+        <div class="indicator">
+          <div class="indicator-label">NDVI Anomaly</div>
+          <div class="indicator-value" id="ind-ndvi">—</div>
+          <div class="bar-container">
+            <div class="bar-fill" id="bar-ndvi" style="width:0%;background:#52b788"></div>
+          </div>
+        </div>
+        <div class="indicator">
+          <div class="indicator-label">Rain Deficit</div>
+          <div class="indicator-value" id="ind-rain">—</div>
+          <div class="bar-container">
+            <div class="bar-fill" id="bar-rain" style="width:0%;background:#e9c46a"></div>
+          </div>
+        </div>
+        <div class="indicator">
+          <div class="indicator-label">Soil Moisture</div>
+          <div class="indicator-value" id="ind-soil">—</div>
+          <div class="bar-container">
+            <div class="bar-fill" id="bar-soil" style="width:0%;background:#52b788"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://tulkyvqxcahanwjzqahx.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_fJQfGi80JST2G_P7Xpqv-Q_XgD3QqA9';
+
+// ─── MAP SETUP ────────────────────────────────────────────────────────────────
+const map = L.map('map', {
+  center: [22.5, 82.5],
+  zoom: 5,
+  zoomControl: true,
+  attributionControl: false,
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  maxZoom: 19,
+}).addTo(map);
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function getRiskColor(score, level) {
+  if (level === 'severe') return '#e63946';
+  if (level === 'warning') return '#f4a261';
+  if (level === 'watch') return '#e9c46a';
+  return '#2d6a4f';
+}
+
+function getLevelClass(level) {
+  return `level-${level || 'normal'}`;
+}
+
+function formatScore(score) {
+  return score != null ? score.toFixed(1) : '—';
+}
+
+function formatVal(val, decimals = 2) {
+  return val != null ? val.toFixed(decimals) : '—';
+}
+
+// ─── DATA FETCH ───────────────────────────────────────────────────────────────
+let allScores = [];
+let geojsonLayer = null;
+let selectedCode = null;
+
+async function fetchData() {
+  try {
+    // Fetch latest risk scores
+    const scoresRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/risk_scores?select=*&order=observed_at.desc&limit=1000`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+    );
+    const scores = await scoresRes.json();
+
+    // Fetch zones with grid_code
+    const zonesRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/zones?select=id,grid_code,name,admin1,admin2`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+    );
+    const zones = await zonesRes.json();
+
+    // Build lookup maps
+    const zoneById = {};
+    zones.forEach(z => { zoneById[z.id] = z; });
+
+    // Latest score per zone
+    const latestByZone = {};
+    scores.forEach(s => {
+      if (!latestByZone[s.zone_id] || s.observed_at > latestByZone[s.zone_id].observed_at) {
+        latestByZone[s.zone_id] = { ...s, zone: zoneById[s.zone_id] };
+      }
+    });
+
+    allScores = Object.values(latestByZone).filter(s => s.zone);
+
+    // Update header stats
+    const counts = { severe: 0, warning: 0, watch: 0, normal: 0 };
+    allScores.forEach(s => {
+      const l = (s.level || 'normal').replace('RiskLevel.', '');
+      if (counts[l] !== undefined) counts[l]++;
+    });
+    document.getElementById('stat-severe').textContent = counts.severe;
+    document.getElementById('stat-warning').textContent = counts.warning;
+    document.getElementById('stat-watch').textContent = counts.watch;
+    document.getElementById('stat-normal').textContent = counts.normal;
+
+    // Window badge
+    if (allScores.length > 0) {
+      const s = allScores[0];
+      const ws = s.window_start ? s.window_start.slice(0, 10) : '';
+      const we = s.window_end ? s.window_end.slice(0, 10) : '';
+      document.getElementById('window-badge').textContent = `${ws} → ${we}`;
+    }
+
+    // Sidebar list — top 20 by score
+    const sorted = [...allScores].sort((a, b) => (b.score || 0) - (a.score || 0));
+    renderSidebar(sorted.slice(0, 30));
+
+    document.getElementById('sidebar-subtitle').textContent =
+      `${allScores.length} districts · June 2026`;
+
+    // Load GeoJSON for map
+    await loadMap(latestByZone, zoneById);
+
+    document.getElementById('loading').style.display = 'none';
+
+  } catch (err) {
+    console.error('Failed to fetch data:', err);
+    document.getElementById('loading').innerHTML =
+      `<div style="color:#e63946;font-family:Space Mono,monospace;font-size:12px">
+        Failed to load data.<br>Check SUPABASE_URL and SUPABASE_KEY.
+      </div>`;
+  }
+}
+
+async function loadMap(latestByZone, zoneById) {
+  // Build score lookup by grid_code
+  const scoreByCode = {};
+  Object.values(latestByZone).forEach(s => {
+    if (s.zone) scoreByCode[s.zone.grid_code] = s;
+  });
+
+  // Fetch zones.geojson — serve it locally or embed
+  let geojson;
+  try {
+    const res = await fetch('./zones.geojson');
+    geojson = await res.json();
+  } catch {
+    console.warn('zones.geojson not found — map will show no boundaries');
+    return;
+  }
+
+  if (geojsonLayer) map.removeLayer(geojsonLayer);
+
+  geojsonLayer = L.geoJSON(geojson, {
+    style: feature => {
+      const code = feature.properties.grid_code;
+      const score = scoreByCode[code];
+      const level = score ? (score.level || 'normal').replace('RiskLevel.', '') : 'normal';
+      return {
+        fillColor: getRiskColor(score?.score, level),
+        fillOpacity: score ? 0.75 : 0.15,
+        color: '#0a0f0d',
+        weight: 0.5,
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const code = feature.properties.grid_code;
+      const score = scoreByCode[code];
+      layer.on({
+        mouseover: e => {
+          e.target.setStyle({ fillOpacity: 0.95, weight: 1.5, color: '#52b788' });
+        },
+        mouseout: e => {
+          if (selectedCode !== code) {
+            geojsonLayer.resetStyle(e.target);
+          }
+        },
+        click: () => {
+          selectedCode = code;
+          if (score) showDetail(score);
+        },
+      });
+      if (score) {
+        const level = (score.level || 'normal').replace('RiskLevel.', '');
+        layer.bindTooltip(
+          `<div style="font-family:Space Grotesk,sans-serif;font-size:12px;background:#111a14;border:1px solid #1e2e22;padding:6px 10px;border-radius:4px;color:#e8f0ea">
+            <strong>${score.zone?.name || code}</strong><br>
+            Score: <strong>${formatScore(score.score)}</strong> · ${level.toUpperCase()}
+          </div>`,
+          { permanent: false, sticky: true, className: 'custom-tooltip' }
+        );
+      }
+    },
+  }).addTo(map);
+
+  map.fitBounds(geojsonLayer.getBounds(), { padding: [20, 20] });
+}
+
+function renderSidebar(scores) {
+  const list = document.getElementById('district-list');
+  if (scores.length === 0) {
+    list.innerHTML = '<div class="no-data">No risk data found.</div>';
+    return;
+  }
+  list.innerHTML = scores.map((s, i) => {
+    const level = (s.level || 'normal').replace('RiskLevel.', '');
+    const name = s.zone?.name || s.zone?.admin2 || s.zone?.grid_code || '—';
+    const state = s.zone?.admin1 || '';
+    return `
+      <div class="district-item" onclick="selectDistrict('${s.zone?.grid_code}', ${JSON.stringify(s).replace(/"/g, '&quot;')})">
+        <div class="district-rank">${String(i + 1).padStart(2, '0')}</div>
+        <div class="district-info">
+          <div class="district-name">${name}</div>
+          <div class="district-meta">${state}</div>
+        </div>
+        <div class="district-score">
+          <div class="score-value ${getLevelClass(level)}">${formatScore(s.score)}</div>
+          <div class="score-level ${getLevelClass(level)}">${level}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function selectDistrict(code, score) {
+  selectedCode = code;
+  document.querySelectorAll('.district-item').forEach(el => el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  showDetail(score);
+}
+
+function showDetail(score) {
+  const panel = document.getElementById('detail-panel');
+  panel.classList.add('visible');
+
+  const name = score.zone?.name || score.zone?.admin2 || score.zone?.grid_code || '—';
+  const level = (score.level || 'normal').replace('RiskLevel.', '');
+  document.getElementById('detail-name').innerHTML =
+    `${name} <span class="score-level ${getLevelClass(level)}" style="font-size:11px">${level.toUpperCase()} · ${formatScore(score.score)}/100</span>`;
+
+  // NDVI anomaly
+  const ndvi = score.ndvi_anomaly;
+  document.getElementById('ind-ndvi').textContent = ndvi != null ? ndvi.toFixed(2) : '—';
+  document.getElementById('bar-ndvi').style.width =
+    ndvi != null ? `${Math.min(100, Math.abs(ndvi) * 50)}%` : '0%';
+  document.getElementById('bar-ndvi').style.background =
+    ndvi != null && ndvi < -0.5 ? '#e63946' : '#52b788';
+
+  // Rainfall deficit
+  const rain = score.rainfall_deficit;
+  document.getElementById('ind-rain').textContent = rain != null ? `${(rain * 100).toFixed(0)}%` : '—';
+  document.getElementById('bar-rain').style.width = rain != null ? `${Math.min(100, rain * 100)}%` : '0%';
+
+  // Soil moisture percentile
+  const soil = score.soil_moisture_percentile;
+  document.getElementById('ind-soil').textContent = soil != null ? `${soil.toFixed(0)}th` : '—';
+  document.getElementById('bar-soil').style.width = soil != null ? `${soil}%` : '0%';
+  document.getElementById('bar-soil').style.background =
+    soil != null && soil < 20 ? '#e63946' : '#52b788';
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
+fetchData();
+</script>
+</body>
+</html>

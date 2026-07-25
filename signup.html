@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canopy — Sign Up for Crop Risk Alerts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f0d;
+    --surface: #111a14;
+    --surface-2: #16221b;
+    --border: #1e2e22;
+    --text: #e8f0ea;
+    --muted: #6b8a72;
+    --normal: #2d6a4f;
+    --normal-light: #52b788;
+    --watch: #e9c46a;
+    --warning: #f4a261;
+    --severe: #e63946;
+    --accent: #52b788;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--accent);
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .logo-text {
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.05em;
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  main {
+    width: 100%;
+    max-width: 480px;
+    padding: 40px 24px 80px;
+    flex: 1;
+  }
+
+  .intro {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .intro h1 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .intro p {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+  }
+
+  .field {
+    margin-bottom: 18px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .field input,
+  .field select {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .field input:focus,
+  .field select:focus {
+    border-color: var(--accent);
+  }
+
+  .field input::placeholder {
+    color: #3d5444;
+  }
+
+  .row {
+    display: flex;
+    gap: 12px;
+  }
+
+  .row .field {
+    flex: 1;
+  }
+
+  button[type="submit"] {
+    width: 100%;
+    background: var(--accent);
+    color: #06140d;
+    border: none;
+    border-radius: 8px;
+    padding: 14px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  button[type="submit"]:hover { opacity: 0.9; }
+  button[type="submit"]:active { transform: scale(0.99); }
+  button[type="submit"]:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .msg {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    display: none;
+  }
+
+  .msg.show { display: block; }
+
+  .msg.success {
+    background: rgba(82, 183, 136, 0.12);
+    border: 1px solid var(--normal-light);
+    color: var(--normal-light);
+  }
+
+  .msg.error {
+    background: rgba(230, 57, 70, 0.1);
+    border: 1px solid var(--severe);
+    color: #ff8a93;
+  }
+
+  .footer-note {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .success-state {
+    display: none;
+    text-align: center;
+    padding: 20px 0;
+  }
+
+  .success-state.show { display: block; }
+
+  .success-icon {
+    width: 56px;
+    height: 56px;
+    background: rgba(82, 183, 136, 0.12);
+    border: 1px solid var(--normal-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin: 0 auto 16px;
+  }
+
+  .success-state h2 {
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  .success-state p {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .form-state.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🌿</div>
+    <div>
+      <div class="logo-text">CANOPY</div>
+      <div class="logo-sub">Crop Risk Alerts</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="intro">
+    <h1>Get crop stress alerts for your district</h1>
+    <p>Canopy watches satellite data for early signs of drought and crop stress, and emails you before it's visible on the ground.</p>
+  </div>
+
+  <div class="card">
+    <form id="signup-form" class="form-state">
+      <div class="field">
+        <label for="name">Full name</label>
+        <input type="text" id="name" name="name" placeholder="e.g. Ramesh Patil" required>
+      </div>
+
+      <div class="field">
+        <label for="email">Email address</label>
+        <input type="email" id="email" name="email" placeholder="you@example.com" required>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="district">District</label>
+          <input type="text" id="district" name="district" placeholder="e.g. Pune" required>
+        </div>
+        <div class="field">
+          <label for="state">State (optional)</label>
+          <input type="text" id="state" name="state" placeholder="e.g. Maharashtra">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="language">Preferred language</label>
+        <select id="language" name="language">
+          <option value="en">English</option>
+          <option value="hi">हिन्दी (Hindi)</option>
+          <option value="sw">Kiswahili</option>
+        </select>
+      </div>
+
+      <button type="submit" id="submit-btn">Sign up for alerts</button>
+
+      <div class="msg" id="form-msg"></div>
+    </form>
+
+    <div class="success-state" id="success-state">
+      <div class="success-icon">✓</div>
+      <h2>You're signed up</h2>
+      <p id="success-detail">We'll email you when crop stress risk rises in your district.</p>
+    </div>
+  </div>
+
+  <p class="footer-note">
+    Your district is matched against Canopy's satellite monitoring zones automatically.<br>
+    If your district name is shared across states, add your state above.
+  </p>
+</main>
+
+<script>
+  // Change this if your API runs somewhere other than localhost:8000
+  const API_BASE = "http://localhost:8000/api/v1";
+
+  const form = document.getElementById("signup-form");
+  const msgBox = document.getElementById("form-msg");
+  const submitBtn = document.getElementById("submit-btn");
+  const successState = document.getElementById("success-state");
+  const successDetail = document.getElementById("success-detail");
+
+  function showMsg(text, type) {
+    msgBox.textContent = text;
+    msgBox.className = "msg show " + type;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    msgBox.className = "msg";
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Signing up...";
+
+    const payload = {
+      name: document.getElementById("name").value.trim(),
+      email: document.getElementById("email").value.trim(),
+      district: document.getElementById("district").value.trim(),
+      state: document.getElementById("state").value.trim() || null,
+      preferred_language: document.getElementById("language").value,
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/farmers/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        successDetail.textContent =
+          `We'll email you at ${payload.email} when crop stress risk rises in ${data.district || payload.district}.`;
+        form.classList.add("hidden");
+        successState.classList.add("show");
+      } else {
+        showMsg(data.detail || "Something went wrong. Please check your district name and try again.", "error");
+      }
+    } catch (err) {
+      showMsg("Couldn't reach the Canopy server. Please check your connection and try again.", "error");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Sign up for alerts";
+    }
+  });
+</script>
+
+</body>
+</html>

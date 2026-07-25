@@ -47,9 +47,11 @@ class Farmer(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     zone_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("zones.id"), index=True)
     name: Mapped[str]
-    phone_e164: Mapped[str] = mapped_column(String(20), unique=True)
+    phone_e164: Mapped[str | None] = mapped_column(String(20), unique=True, nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     preferred_language: Mapped[str] = mapped_column(String(10), default="en")
     whatsapp_opt_in: Mapped[bool] = mapped_column(Boolean, default=False)
+    email_opt_in: Mapped[bool] = mapped_column(Boolean, default=False)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now()

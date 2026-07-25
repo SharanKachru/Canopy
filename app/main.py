@@ -2,8 +2,9 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import alerts, risk_scores, zones
+from app.routers import alerts, farmers, risk_scores, zones
 
 log = logging.getLogger(__name__)
 
@@ -25,9 +26,19 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Allow the static dashboard/signup pages (served separately, e.g. via
+# `python -m http.server`) to call this API from the browser.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(zones.router, prefix="/api/v1")
 app.include_router(risk_scores.router, prefix="/api/v1")
 app.include_router(alerts.router, prefix="/api/v1")
+app.include_router(farmers.router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["operations"])
