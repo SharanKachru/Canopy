@@ -20,6 +20,10 @@ jobs:
         env:
           ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
           ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+          
+      - name: Test raw auth from GitHub runner
+        run: |
+          curl -u "${{ secrets.ACR_USERNAME }}:${{ secrets.ACR_PASSWORD }}" https://canopy.azurecr.io/v2/_catalog -v  
 
       - name: Log in to Docker registry
         run: echo "${{ secrets.ACR_PASSWORD }}" | docker login canopy.azurecr.io -u "${{ secrets.ACR_USERNAME }}" --password-stdin
