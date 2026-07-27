@@ -12,6 +12,7 @@
   :root {
     --bg: #0a0f0d;
     --surface: #111a14;
+    --surface-2: #16221a;
     --border: #1e2e22;
     --text: #e8f0ea;
     --muted: #6b8a72;
@@ -45,6 +46,7 @@
     background: var(--surface);
     flex-shrink: 0;
     z-index: 1000;
+    gap: 16px;
   }
 
   .logo {
@@ -81,13 +83,23 @@
 
   .header-stats {
     display: flex;
-    gap: 32px;
+    gap: 8px;
     align-items: center;
   }
 
   .stat {
     text-align: center;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+    user-select: none;
   }
+
+  .stat:hover { background: rgba(255,255,255,0.04); }
+  .stat.inactive { opacity: 0.35; }
+  .stat.active-filter { border-color: currentColor; background: rgba(255,255,255,0.04); }
 
   .stat-value {
     font-family: 'Space Mono', monospace;
@@ -104,10 +116,19 @@
     margin-top: 3px;
   }
 
-  .stat-value.severe { color: var(--severe); }
-  .stat-value.warning { color: var(--warning); }
-  .stat-value.watch { color: var(--watch); }
-  .stat-value.normal { color: var(--normal-light); }
+  .stat-value.severe, .stat.severe { color: var(--severe); }
+  .stat-value.warning, .stat.warning { color: var(--warning); }
+  .stat-value.watch, .stat.watch { color: var(--watch); }
+  .stat-value.normal, .stat.normal { color: var(--normal-light); }
+
+  .filter-hint {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+  }
 
   .window-badge {
     font-family: 'Space Mono', monospace;
@@ -116,6 +137,7 @@
     background: var(--border);
     padding: 4px 10px;
     border-radius: 4px;
+    white-space: nowrap;
   }
 
   .main {
@@ -127,10 +149,11 @@
   #map {
     flex: 1;
     background: #0d1a10;
+    position: relative;
   }
 
   .sidebar {
-    width: 320px;
+    width: 360px;
     background: var(--surface);
     border-left: 1px solid var(--border);
     display: flex;
@@ -140,7 +163,7 @@
   }
 
   .sidebar-header {
-    padding: 16px 20px 12px;
+    padding: 14px 20px 10px;
     border-bottom: 1px solid var(--border);
   }
 
@@ -158,8 +181,75 @@
     font-weight: 500;
   }
 
+  .search-row {
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .search-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    outline: none;
+  }
+
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+
+  .tabs {
+    display: flex;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+    gap: 4px;
+  }
+
+  .tab {
+    padding: 10px 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-right: 16px;
+  }
+
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+
+  .active-filters {
+    padding: 8px 20px 0;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .active-filters:empty { padding: 0; }
+
+  .chip {
+    font-size: 10px;
+    font-family: 'Space Mono', monospace;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 3px 8px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+  }
+  .chip:hover { border-color: var(--accent); }
+
   .legend {
-    padding: 14px 20px;
+    padding: 10px 20px;
     border-bottom: 1px solid var(--border);
     display: flex;
     gap: 12px;
@@ -181,15 +271,15 @@
     flex-shrink: 0;
   }
 
-  .district-list {
+  .list-pane {
     flex: 1;
     overflow-y: auto;
     padding: 8px 0;
   }
 
-  .district-list::-webkit-scrollbar { width: 4px; }
-  .district-list::-webkit-scrollbar-track { background: transparent; }
-  .district-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .list-pane::-webkit-scrollbar { width: 4px; }
+  .list-pane::-webkit-scrollbar-track { background: transparent; }
+  .list-pane::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
   .district-item {
     padding: 10px 20px;
@@ -252,20 +342,110 @@
   .level-watch { color: var(--watch); }
   .level-normal { color: var(--normal-light); }
 
+  /* State summary rows */
+  .state-item {
+    padding: 12px 20px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+  }
+  .state-item:hover { background: rgba(82, 183, 136, 0.05); }
+  .state-item.active { background: rgba(82, 183, 136, 0.08); }
+
+  .state-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  .state-name { font-size: 13px; font-weight: 500; }
+  .state-avg { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; }
+
+  .state-bar {
+    display: flex;
+    height: 5px;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 8px;
+    background: var(--border);
+  }
+  .state-bar span { height: 100%; }
+
+  .state-counts {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+  .state-counts b { font-weight: 700; }
+
   .detail-panel {
     background: var(--bg);
     border-top: 1px solid var(--border);
     padding: 16px 20px;
     display: none;
+    max-height: 46vh;
+    overflow-y: auto;
+    flex-shrink: 0;
   }
 
+  .detail-panel::-webkit-scrollbar { width: 4px; }
+  .detail-panel::-webkit-scrollbar-track { background: transparent; }
+  .detail-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
   .detail-panel.visible { display: block; }
+
+  .detail-close {
+    float: right;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1;
+  }
+  .detail-close:hover { color: var(--text); }
 
   .detail-district {
     font-size: 14px;
     font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .detail-sub {
+    font-size: 11px;
+    color: var(--muted);
     margin-bottom: 12px;
   }
+
+  .detail-block {
+    margin-bottom: 14px;
+  }
+
+  .detail-block-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .detail-text {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+
+  .action-box {
+    background: var(--surface-2);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .action-box.severe { border-left-color: var(--severe); }
+  .action-box.warning { border-left-color: var(--warning); }
+  .action-box.watch { border-left-color: var(--watch); }
 
   .indicators {
     display: grid;
@@ -306,6 +486,30 @@
     height: 100%;
     border-radius: 2px;
     transition: width 0.4s ease;
+  }
+
+  .confidence-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .quality-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    padding: 5px 10px;
+    border-radius: 4px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+
+  .quality-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
   }
 
   .loading {
@@ -362,20 +566,20 @@
       <div class="logo-sub">Crop Risk Monitor</div>
     </div>
   </div>
-  <div class="header-stats">
-    <div class="stat">
+  <div class="header-stats" id="header-stats">
+    <div class="stat severe" data-level="severe" onclick="toggleLevelFilter('severe')">
       <div class="stat-value severe" id="stat-severe">—</div>
       <div class="stat-label">Severe</div>
     </div>
-    <div class="stat">
+    <div class="stat warning" data-level="warning" onclick="toggleLevelFilter('warning')">
       <div class="stat-value warning" id="stat-warning">—</div>
       <div class="stat-label">Warning</div>
     </div>
-    <div class="stat">
+    <div class="stat watch" data-level="watch" onclick="toggleLevelFilter('watch')">
       <div class="stat-value watch" id="stat-watch">—</div>
       <div class="stat-label">Watch</div>
     </div>
-    <div class="stat">
+    <div class="stat normal" data-level="normal" onclick="toggleLevelFilter('normal')">
       <div class="stat-value normal" id="stat-normal">—</div>
       <div class="stat-label">Normal</div>
     </div>
@@ -393,9 +597,17 @@
 
   <div class="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-title">Highest Risk Districts</div>
+      <div class="sidebar-title" id="sidebar-title">Highest Risk Districts</div>
       <div class="sidebar-subtitle" id="sidebar-subtitle">Loading...</div>
     </div>
+    <div class="search-row">
+      <input class="search-input" id="search-input" type="text" placeholder="Search district or state…" oninput="onSearch()">
+    </div>
+    <div class="tabs">
+      <div class="tab active" id="tab-districts" onclick="setTab('districts')">Districts</div>
+      <div class="tab" id="tab-states" onclick="setTab('states')">By State</div>
+    </div>
+    <div class="active-filters" id="active-filters"></div>
     <div class="legend">
       <div class="legend-item">
         <div class="legend-dot" style="background:#e63946"></div>Severe
@@ -410,32 +622,59 @@
         <div class="legend-dot" style="background:#52b788"></div>Normal
       </div>
     </div>
-    <div class="district-list" id="district-list">
+    <div class="list-pane" id="list-pane">
       <div class="no-data">Loading risk data...</div>
     </div>
     <div class="detail-panel" id="detail-panel">
+      <div class="detail-close" onclick="closeDetail()">✕</div>
       <div class="detail-district" id="detail-name">—</div>
-      <div class="indicators">
-        <div class="indicator">
-          <div class="indicator-label">NDVI Anomaly</div>
-          <div class="indicator-value" id="ind-ndvi">—</div>
-          <div class="bar-container">
-            <div class="bar-fill" id="bar-ndvi" style="width:0%;background:#52b788"></div>
+      <div class="detail-sub" id="detail-sub">—</div>
+
+      <div class="detail-block">
+        <div class="detail-block-label">What's happening</div>
+        <div class="detail-text" id="detail-problem">—</div>
+      </div>
+
+      <div class="detail-block">
+        <div class="detail-block-label">Recommended action</div>
+        <div class="action-box" id="detail-action">—</div>
+      </div>
+
+      <div class="detail-block">
+        <div class="detail-block-label">Indicators</div>
+        <div class="indicators">
+          <div class="indicator">
+            <div class="indicator-label">NDVI Anomaly</div>
+            <div class="indicator-value" id="ind-ndvi">—</div>
+            <div class="bar-container">
+              <div class="bar-fill" id="bar-ndvi" style="width:0%;background:#52b788"></div>
+            </div>
+          </div>
+          <div class="indicator">
+            <div class="indicator-label">Rain Deficit</div>
+            <div class="indicator-value" id="ind-rain">—</div>
+            <div class="bar-container">
+              <div class="bar-fill" id="bar-rain" style="width:0%;background:#e9c46a"></div>
+            </div>
+          </div>
+          <div class="indicator">
+            <div class="indicator-label">Soil Moisture</div>
+            <div class="indicator-value" id="ind-soil">—</div>
+            <div class="bar-container">
+              <div class="bar-fill" id="bar-soil" style="width:0%;background:#52b788"></div>
+            </div>
           </div>
         </div>
-        <div class="indicator">
-          <div class="indicator-label">Rain Deficit</div>
-          <div class="indicator-value" id="ind-rain">—</div>
-          <div class="bar-container">
-            <div class="bar-fill" id="bar-rain" style="width:0%;background:#e9c46a"></div>
+      </div>
+
+      <div class="detail-block">
+        <div class="detail-block-label">Confidence</div>
+        <div class="confidence-row">
+          <div class="quality-badge" id="badge-quality">
+            <div class="quality-dot" id="dot-quality" style="background:#52b788"></div>
+            <span id="text-quality">—</span>
           </div>
-        </div>
-        <div class="indicator">
-          <div class="indicator-label">Soil Moisture</div>
-          <div class="indicator-value" id="ind-soil">—</div>
-          <div class="bar-container">
-            <div class="bar-fill" id="bar-soil" style="width:0%;background:#52b788"></div>
-          </div>
+          <div class="quality-badge" id="badge-asof">📅 <span id="text-asof">—</span></div>
         </div>
       </div>
     </div>
@@ -471,6 +710,10 @@ function getLevelClass(level) {
   return `level-${level || 'normal'}`;
 }
 
+function cleanLevel(level) {
+  return (level || 'normal').replace('RiskLevel.', '');
+}
+
 function formatScore(score) {
   return score != null ? score.toFixed(1) : '—';
 }
@@ -479,32 +722,40 @@ function formatVal(val, decimals = 2) {
   return val != null ? val.toFixed(decimals) : '—';
 }
 
-// ─── DATA FETCH ───────────────────────────────────────────────────────────────
-let allScores = [];
+function daysAgo(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  const diffMs = Date.now() - d.getTime();
+  return Math.max(0, Math.round(diffMs / 86400000));
+}
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let allScores = [];          // latest score per zone, with .zone attached
 let geojsonLayer = null;
 let selectedCode = null;
+let currentTab = 'districts'; // 'districts' | 'states'
+let levelFilters = new Set(); // empty = all levels shown
+let stateFilter = null;       // admin1 name, or null
+let searchText = '';
 
+// ─── DATA FETCH ───────────────────────────────────────────────────────────────
 async function fetchData() {
   try {
-    // Fetch latest risk scores
     const scoresRes = await fetch(
       `${SUPABASE_URL}/rest/v1/risk_scores?select=*&order=observed_at.desc&limit=1000`,
       { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
     );
     const scores = await scoresRes.json();
 
-    // Fetch zones with grid_code
     const zonesRes = await fetch(
       `${SUPABASE_URL}/rest/v1/zones?select=id,grid_code,name,admin1,admin2`,
       { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
     );
     const zones = await zonesRes.json();
 
-    // Build lookup maps
     const zoneById = {};
     zones.forEach(z => { zoneById[z.id] = z; });
 
-    // Latest score per zone
     const latestByZone = {};
     scores.forEach(s => {
       if (!latestByZone[s.zone_id] || s.observed_at > latestByZone[s.zone_id].observed_at) {
@@ -514,18 +765,8 @@ async function fetchData() {
 
     allScores = Object.values(latestByZone).filter(s => s.zone);
 
-    // Update header stats
-    const counts = { severe: 0, warning: 0, watch: 0, normal: 0 };
-    allScores.forEach(s => {
-      const l = (s.level || 'normal').replace('RiskLevel.', '');
-      if (counts[l] !== undefined) counts[l]++;
-    });
-    document.getElementById('stat-severe').textContent = counts.severe;
-    document.getElementById('stat-warning').textContent = counts.warning;
-    document.getElementById('stat-watch').textContent = counts.watch;
-    document.getElementById('stat-normal').textContent = counts.normal;
+    updateHeaderStats();
 
-    // Window badge
     if (allScores.length > 0) {
       const s = allScores[0];
       const ws = s.window_start ? s.window_start.slice(0, 10) : '';
@@ -533,15 +774,8 @@ async function fetchData() {
       document.getElementById('window-badge').textContent = `${ws} → ${we}`;
     }
 
-    // Sidebar list — top 20 by score
-    const sorted = [...allScores].sort((a, b) => (b.score || 0) - (a.score || 0));
-    renderSidebar(sorted.slice(0, 30));
-
-    document.getElementById('sidebar-subtitle').textContent =
-      `${allScores.length} districts · June 2026`;
-
-    // Load GeoJSON for map
-    await loadMap(latestByZone, zoneById);
+    render();
+    await loadMap();
 
     document.getElementById('loading').style.display = 'none';
 
@@ -554,82 +788,121 @@ async function fetchData() {
   }
 }
 
-async function loadMap(latestByZone, zoneById) {
-  // Build score lookup by grid_code
-  const scoreByCode = {};
-  Object.values(latestByZone).forEach(s => {
-    if (s.zone) scoreByCode[s.zone.grid_code] = s;
+function updateHeaderStats() {
+  const counts = { severe: 0, warning: 0, watch: 0, normal: 0 };
+  allScores.forEach(s => {
+    const l = cleanLevel(s.level);
+    if (counts[l] !== undefined) counts[l]++;
   });
-
-  // Fetch zones.geojson — serve it locally or embed
-  let geojson;
-  try {
-    const res = await fetch('./zones.geojson');
-    geojson = await res.json();
-  } catch {
-    console.warn('zones.geojson not found — map will show no boundaries');
-    return;
-  }
-
-  if (geojsonLayer) map.removeLayer(geojsonLayer);
-
-  geojsonLayer = L.geoJSON(geojson, {
-    style: feature => {
-      const code = feature.properties.grid_code;
-      const score = scoreByCode[code];
-      const level = score ? (score.level || 'normal').replace('RiskLevel.', '') : 'normal';
-      return {
-        fillColor: getRiskColor(score?.score, level),
-        fillOpacity: score ? 0.75 : 0.15,
-        color: '#0a0f0d',
-        weight: 0.5,
-      };
-    },
-    onEachFeature: (feature, layer) => {
-      const code = feature.properties.grid_code;
-      const score = scoreByCode[code];
-      layer.on({
-        mouseover: e => {
-          e.target.setStyle({ fillOpacity: 0.95, weight: 1.5, color: '#52b788' });
-        },
-        mouseout: e => {
-          if (selectedCode !== code) {
-            geojsonLayer.resetStyle(e.target);
-          }
-        },
-        click: () => {
-          selectedCode = code;
-          if (score) showDetail(score);
-        },
-      });
-      if (score) {
-        const level = (score.level || 'normal').replace('RiskLevel.', '');
-        layer.bindTooltip(
-          `<div style="font-family:Space Grotesk,sans-serif;font-size:12px;background:#111a14;border:1px solid #1e2e22;padding:6px 10px;border-radius:4px;color:#e8f0ea">
-            <strong>${score.zone?.name || code}</strong><br>
-            Score: <strong>${formatScore(score.score)}</strong> · ${level.toUpperCase()}
-          </div>`,
-          { permanent: false, sticky: true, className: 'custom-tooltip' }
-        );
-      }
-    },
-  }).addTo(map);
-
-  map.fitBounds(geojsonLayer.getBounds(), { padding: [20, 20] });
+  document.getElementById('stat-severe').textContent = counts.severe;
+  document.getElementById('stat-warning').textContent = counts.warning;
+  document.getElementById('stat-watch').textContent = counts.watch;
+  document.getElementById('stat-normal').textContent = counts.normal;
 }
 
-function renderSidebar(scores) {
-  const list = document.getElementById('district-list');
-  if (scores.length === 0) {
-    list.innerHTML = '<div class="no-data">No risk data found.</div>';
+// ─── FILTERING ────────────────────────────────────────────────────────────────
+function matchesFilters(s) {
+  const level = cleanLevel(s.level);
+  if (levelFilters.size > 0 && !levelFilters.has(level)) return false;
+  if (stateFilter && (s.zone?.admin1 || '') !== stateFilter) return false;
+  if (searchText) {
+    const name = (s.zone?.name || s.zone?.admin2 || '').toLowerCase();
+    const state = (s.zone?.admin1 || '').toLowerCase();
+    if (!name.includes(searchText) && !state.includes(searchText)) return false;
+  }
+  return true;
+}
+
+function getFilteredScores() {
+  return allScores.filter(matchesFilters);
+}
+
+function toggleLevelFilter(level) {
+  if (levelFilters.has(level)) {
+    levelFilters.delete(level);
+  } else {
+    levelFilters.add(level);
+  }
+  refreshHeaderActiveState();
+  render();
+  restyleMap();
+}
+
+function refreshHeaderActiveState() {
+  ['severe', 'warning', 'watch', 'normal'].forEach(l => {
+    const el = document.querySelector(`.stat[data-level="${l}"]`);
+    if (!el) return;
+    el.classList.toggle('active-filter', levelFilters.has(l));
+    el.classList.toggle('inactive', levelFilters.size > 0 && !levelFilters.has(l));
+  });
+}
+
+function onSearch() {
+  searchText = document.getElementById('search-input').value.trim().toLowerCase();
+  render();
+  restyleMap();
+}
+
+function setTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-districts').classList.toggle('active', tab === 'districts');
+  document.getElementById('tab-states').classList.toggle('active', tab === 'states');
+  document.getElementById('sidebar-title').textContent =
+    tab === 'states' ? 'State-wise Risk Summary' : (stateFilter ? `${stateFilter} — Districts` : 'Highest Risk Districts');
+  render();
+}
+
+function renderActiveFilterChips() {
+  const el = document.getElementById('active-filters');
+  const chips = [];
+  levelFilters.forEach(l => {
+    chips.push(`<div class="chip" onclick="toggleLevelFilter('${l}')">${l.toUpperCase()} ✕</div>`);
+  });
+  if (stateFilter) {
+    chips.push(`<div class="chip" onclick="clearStateFilter()">📍 ${stateFilter} ✕</div>`);
+  }
+  el.innerHTML = chips.join('');
+}
+
+function clearStateFilter() {
+  stateFilter = null;
+  if (currentTab === 'districts') {
+    document.getElementById('sidebar-title').textContent = 'Highest Risk Districts';
+  }
+  render();
+  restyleMap();
+}
+
+// ─── RENDER ROUTER ─────────────────────────────────────────────────────────────
+function render() {
+  renderActiveFilterChips();
+  if (currentTab === 'states') {
+    renderStates();
+  } else {
+    renderDistricts();
+  }
+}
+
+// ─── DISTRICTS LIST ─────────────────────────────────────────────────────────────
+function renderDistricts() {
+  const filtered = getFilteredScores();
+  const sorted = [...filtered].sort((a, b) => (b.score || 0) - (a.score || 0));
+
+  document.getElementById('sidebar-subtitle').textContent =
+    `${filtered.length} of ${allScores.length} districts`;
+
+  const list = document.getElementById('list-pane');
+  if (sorted.length === 0) {
+    list.innerHTML = '<div class="no-data">No districts match the current filters.</div>';
     return;
   }
-  list.innerHTML = scores.map((s, i) => {
-    const level = (s.level || 'normal').replace('RiskLevel.', '');
+  list.innerHTML = sorted.slice(0, 200).map((s, i) => {
+    const level = cleanLevel(s.level);
     const name = s.zone?.name || s.zone?.admin2 || s.zone?.grid_code || '—';
     const state = s.zone?.admin1 || '';
+    const active = s.zone?.grid_code === selectedCode ? 'active' : '';
     return `
-      <div class="district-item" onclick="selectDistrict('${s.zone?.grid_code}', ${JSON.stringify(s).replace(/"/g, '&quot;')})">
+      <div class="district-item ${active}" onclick="selectDistrictByCode('${s.zone?.grid_code}')">
         <div class="district-rank">${String(i + 1).padStart(2, '0')}</div>
         <div class="district-info">
           <div class="district-name">${name}</div>
@@ -644,11 +917,227 @@ function renderSidebar(scores) {
   }).join('');
 }
 
-function selectDistrict(code, score) {
+// ─── STATE SUMMARY ──────────────────────────────────────────────────────────────
+function renderStates() {
+  const filtered = getFilteredScores();
+
+  const byState = {};
+  filtered.forEach(s => {
+    const state = s.zone?.admin1 || 'Unknown';
+    if (!byState[state]) {
+      byState[state] = { name: state, scores: [], counts: { severe: 0, warning: 0, watch: 0, normal: 0 } };
+    }
+    byState[state].scores.push(s.score || 0);
+    byState[state].counts[cleanLevel(s.level)]++;
+  });
+
+  const states = Object.values(byState).map(st => {
+    const avg = st.scores.reduce((a, b) => a + b, 0) / st.scores.length;
+    return { ...st, avg, total: st.scores.length };
+  }).sort((a, b) => b.avg - a.avg);
+
+  document.getElementById('sidebar-subtitle').textContent = `${states.length} states/UTs`;
+
+  const list = document.getElementById('list-pane');
+  if (states.length === 0) {
+    list.innerHTML = '<div class="no-data">No states match the current filters.</div>';
+    return;
+  }
+
+  list.innerHTML = states.map(st => {
+    const level = st.avg >= 70 ? 'severe' : st.avg >= 50 ? 'warning' : st.avg >= 30 ? 'watch' : 'normal';
+    const active = st.name === stateFilter ? 'active' : '';
+    const pct = k => st.total ? (st.counts[k] / st.total * 100) : 0;
+    return `
+      <div class="state-item ${active}" onclick="selectState('${st.name.replace(/'/g, "\\'")}')">
+        <div class="state-item-top">
+          <div class="state-name">${st.name}</div>
+          <div class="state-avg ${getLevelClass(level)}">${formatScore(st.avg)}</div>
+        </div>
+        <div class="state-bar">
+          <span style="width:${pct('severe')}%;background:#e63946"></span>
+          <span style="width:${pct('warning')}%;background:#f4a261"></span>
+          <span style="width:${pct('watch')}%;background:#e9c46a"></span>
+          <span style="width:${pct('normal')}%;background:#2d6a4f"></span>
+        </div>
+        <div class="state-counts">
+          <span><b style="color:#e63946">${st.counts.severe}</b> severe</span>
+          <span><b style="color:#f4a261">${st.counts.warning}</b> warning</span>
+          <span><b style="color:#e9c46a">${st.counts.watch}</b> watch</span>
+          <span><b style="color:#52b788">${st.counts.normal}</b> normal</span>
+          <span style="margin-left:auto">${st.total} districts</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function selectState(name) {
+  stateFilter = name;
+  setTab('districts');
+  render();
+  restyleMap();
+}
+
+// ─── MAP ──────────────────────────────────────────────────────────────────────
+async function loadMap() {
+  let geojson;
+  try {
+    const res = await fetch('./zones.geojson');
+    geojson = await res.json();
+  } catch {
+    console.warn('zones.geojson not found — map will show no boundaries');
+    return;
+  }
+  window.__geojson = geojson;
+
+  if (geojsonLayer) map.removeLayer(geojsonLayer);
+
+  geojsonLayer = L.geoJSON(geojson, {
+    style: featureStyle,
+    onEachFeature: (feature, layer) => {
+      const code = feature.properties.grid_code;
+      layer.on({
+        mouseover: e => {
+          e.target.setStyle({ fillOpacity: 0.95, weight: 1.5, color: '#52b788' });
+        },
+        mouseout: e => {
+          if (selectedCode !== code) geojsonLayer.resetStyle(e.target);
+        },
+        click: () => selectDistrictByCode(code),
+      });
+      bindTooltip(layer, code);
+    },
+  }).addTo(map);
+
+  map.fitBounds(geojsonLayer.getBounds(), { padding: [20, 20] });
+}
+
+function scoreByCode() {
+  const m = {};
+  allScores.forEach(s => { if (s.zone) m[s.zone.grid_code] = s; });
+  return m;
+}
+
+function featureStyle(feature) {
+  const code = feature.properties.grid_code;
+  const score = scoreByCode()[code];
+  const level = score ? cleanLevel(score.level) : 'normal';
+  const dimmed = score ? !matchesFilters(score) : true;
+  return {
+    fillColor: getRiskColor(score?.score, level),
+    fillOpacity: score ? (dimmed ? 0.08 : 0.75) : 0.08,
+    color: '#0a0f0d',
+    weight: 0.5,
+  };
+}
+
+function bindTooltip(layer, code) {
+  const score = scoreByCode()[code];
+  if (!score) return;
+  const level = cleanLevel(score.level);
+  layer.bindTooltip(
+    `<div style="font-family:Space Grotesk,sans-serif;font-size:12px;background:#111a14;border:1px solid #1e2e22;padding:6px 10px;border-radius:4px;color:#e8f0ea">
+      <strong>${score.zone?.name || code}</strong><br>
+      Score: <strong>${formatScore(score.score)}</strong> · ${level.toUpperCase()}
+    </div>`,
+    { permanent: false, sticky: true, className: 'custom-tooltip' }
+  );
+}
+
+function restyleMap() {
+  if (!geojsonLayer) return;
+  geojsonLayer.eachLayer(layer => {
+    layer.setStyle(featureStyle(layer.feature));
+  });
+}
+
+// ─── SELECTION / DETAIL ─────────────────────────────────────────────────────────
+function selectDistrictByCode(code) {
+  const s = allScores.find(sc => sc.zone?.grid_code === code);
+  if (!s) return;
   selectedCode = code;
-  document.querySelectorAll('.district-item').forEach(el => el.classList.remove('active'));
-  event.currentTarget.classList.add('active');
-  showDetail(score);
+  if (currentTab === 'districts') {
+    document.querySelectorAll('.district-item').forEach(el => el.classList.remove('active'));
+    render();
+  }
+  if (geojsonLayer) restyleSelectionOnMap();
+  showDetail(s);
+}
+
+function restyleSelectionOnMap() {
+  geojsonLayer.eachLayer(layer => {
+    const code = layer.feature.properties.grid_code;
+    if (code === selectedCode) {
+      layer.setStyle({ weight: 2, color: '#e8f0ea' });
+    }
+  });
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('visible');
+  selectedCode = null;
+  if (geojsonLayer) restyleMap();
+}
+
+// ─── PROBLEM / ACTION TEXT GENERATION ───────────────────────────────────────────
+function dominantDriver(s) {
+  const drivers = [
+    { key: 'ndvi', label: 'vegetation stress (NDVI)', value: s.ndvi_risk || 0 },
+    { key: 'rainfall', label: 'rainfall deficit', value: s.rainfall_risk || 0 },
+    { key: 'soil', label: 'low soil moisture', value: s.soil_moisture_risk || 0 },
+  ];
+  drivers.sort((a, b) => b.value - a.value);
+  return drivers[0];
+}
+
+function problemText(s) {
+  const level = cleanLevel(s.level);
+  if (level === 'normal') {
+    return 'No significant crop stress detected. NDVI, rainfall, and soil moisture are all within normal historical ranges for this window.';
+  }
+  const driver = dominantDriver(s);
+  const parts = [];
+  if (driver.key === 'ndvi') {
+    parts.push(`Vegetation stress is the primary signal: NDVI is running ${s.ndvi_anomaly != null ? Math.abs(s.ndvi_anomaly).toFixed(2) : 'well'} standard deviations below the seasonal baseline, indicating the crop canopy itself is under stress.`);
+  } else if (driver.key === 'rainfall') {
+    parts.push(`Rainfall deficit is the primary signal: observed rainfall is ${s.rainfall_deficit != null ? (s.rainfall_deficit * 100).toFixed(0) : 'substantially'}% below the baseline for this window.`);
+  } else {
+    parts.push(`Low soil moisture is the primary signal: soil moisture sits at the ${s.soil_moisture_percentile != null ? s.soil_moisture_percentile.toFixed(0) : 'low'}th historical percentile for this time of year.`);
+  }
+  if (s.ndvi_risk > 40 && driver.key !== 'ndvi') parts.push('Vegetation is also showing secondary stress.');
+  if (s.rainfall_risk > 40 && driver.key !== 'rainfall') parts.push('Rainfall is also running below normal.');
+  if (s.soil_moisture_risk > 40 && driver.key !== 'soil') parts.push('Soil moisture is also low.');
+  return parts.join(' ');
+}
+
+function actionText(s) {
+  const level = cleanLevel(s.level);
+  if (level === 'normal') {
+    return 'No action needed. Continue routine monitoring.';
+  }
+  const driver = dominantDriver(s);
+  const urgency = level === 'severe' ? 'Immediate' : level === 'warning' ? 'Near-term' : 'Advisory';
+  let action;
+  if (driver.key === 'ndvi') {
+    action = 'field verification to rule out pest or disease pressure alongside moisture stress; prepare farmers for possible yield impact.';
+  } else if (driver.key === 'rainfall') {
+    action = 'supplemental irrigation where available, and monitor for delayed sowing or germination effects in rainfed plots.';
+  } else {
+    action = 'irrigation scheduling and moisture-conservation practices (mulching, reduced tillage) to protect root-zone moisture.';
+  }
+  return `${urgency} — recommend ${action}`;
+}
+
+function qualityInfo(s) {
+  const conf = s.confidence != null ? s.confidence : 0;
+  const coverage = s.quality?.ndvi_coverage != null ? s.quality.ndvi_coverage : null;
+  let label, color;
+  if (conf >= 0.8) { label = 'High confidence'; color = '#52b788'; }
+  else if (conf >= 0.5) { label = 'Medium confidence'; color = '#e9c46a'; }
+  else { label = 'Low confidence'; color = '#e63946'; }
+  const covTxt = coverage != null ? ` · ${(coverage * 100).toFixed(0)}% NDVI pixel coverage` : '';
+  return { text: `${label} (${(conf * 100).toFixed(0)}%)${covTxt}`, color };
 }
 
 function showDetail(score) {
@@ -656,9 +1145,18 @@ function showDetail(score) {
   panel.classList.add('visible');
 
   const name = score.zone?.name || score.zone?.admin2 || score.zone?.grid_code || '—';
-  const level = (score.level || 'normal').replace('RiskLevel.', '');
+  const state = score.zone?.admin1 || '';
+  const level = cleanLevel(score.level);
+
   document.getElementById('detail-name').innerHTML =
     `${name} <span class="score-level ${getLevelClass(level)}" style="font-size:11px">${level.toUpperCase()} · ${formatScore(score.score)}/100</span>`;
+  document.getElementById('detail-sub').textContent = state;
+
+  document.getElementById('detail-problem').textContent = problemText(score);
+
+  const actionBox = document.getElementById('detail-action');
+  actionBox.textContent = actionText(score);
+  actionBox.className = `action-box ${level}`;
 
   // NDVI anomaly
   const ndvi = score.ndvi_anomaly;
@@ -679,6 +1177,15 @@ function showDetail(score) {
   document.getElementById('bar-soil').style.width = soil != null ? `${soil}%` : '0%';
   document.getElementById('bar-soil').style.background =
     soil != null && soil < 20 ? '#e63946' : '#52b788';
+
+  // Confidence / data quality
+  const q = qualityInfo(score);
+  document.getElementById('text-quality').textContent = q.text;
+  document.getElementById('dot-quality').style.background = q.color;
+
+  const asOf = score.window_end ? score.window_end.slice(0, 10) : (score.observed_at ? score.observed_at.slice(0, 10) : '—');
+  const age = daysAgo(score.window_end || score.observed_at);
+  document.getElementById('text-asof').textContent = age != null ? `${asOf} (${age}d ago)` : asOf;
 }
 
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
