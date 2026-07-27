@@ -13,14 +13,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Hash the secret
-        run: |
-          echo -n "${{ secrets.ACR_PASSWORD }}" | sha256sum
-        env:
-          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
-
       - name: Log in to Docker registry
-        run: echo "${{ secrets.ACR_PASSWORD }}" | docker login canopy.azurecr.io -u "${{ secrets.ACR_USERNAME }}" --password-stdin
+        env:
+          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+        run: |
+          test -n "$ACR_USERNAME" || (echo "Missing GitHub secret: ACR_USERNAME" && exit 1)
+          test -n "$ACR_PASSWORD" || (echo "Missing GitHub secret: ACR_PASSWORD" && exit 1)
+          echo "$ACR_PASSWORD" | docker login canopy.azurecr.io -u "$ACR_USERNAME" --password-stdin
 
       - name: Build and push Docker image
         run: |
