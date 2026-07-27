@@ -13,6 +13,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Debug secret length
+        run: |
+          echo "Username length: ${#ACR_USERNAME}"
+          echo "Password length: ${#ACR_PASSWORD}"
+        env:
+          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+
       - name: Log in to Docker registry
         run: echo "${{ secrets.ACR_PASSWORD }}" | docker login canopy.azurecr.io -u "${{ secrets.ACR_USERNAME }}" --password-stdin
 
