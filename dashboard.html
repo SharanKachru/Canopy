@@ -691,11 +691,12 @@ const map = L.map('map', {
   center: [22.5, 82.5],
   zoom: 5,
   zoomControl: true,
-  attributionControl: false,
+  attributionControl: true,
 });
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
+  attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
